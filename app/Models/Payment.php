@@ -2,30 +2,30 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-use app\Models\User;
+use App\Models\User;
+use App\Models\Reservasi;
 
-class Reservasi extends Model
+class Payment extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'id_user',
-        'start_date',
-        'end_date',
-        'dewasa',
-        'anak',
-        'nomor_telepon',
-        'nama',
+        'id_reservasi',
+        'total_bayar',
+        'tanggal_bayar',
         'status',
-        'total_harga',
-        'sisa_pembayaran'
+        'tipe'
     ];
 
     public function user() {
         return $this->belongsTo(User::class, 'id_user');
+    }
+
+    public function reservasi() {
+        return $this->belongsTo(Reservasi::class, 'id_reservasi');
     }
 }

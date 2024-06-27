@@ -17,7 +17,7 @@ class ReservasiController extends Controller
 {
     public function index()
     {
-        $reservasis = Reservasi::latest()->paginate(5);
+        $reservasis = Reservasi::orderBy('start_date', 'asc')->paginate(10);
 
         return new PostResource(true, 'List Data Reservasi', $reservasis);
     }
@@ -28,6 +28,29 @@ class ReservasiController extends Controller
 
         return new PostResource(true, 'List Data Reservasi', $findReservasis);
     }
+    public function reservasiByUserPayed($id)
+    {
+        $findReservasis = Reservasi::where([['id_user', $id], ['status', 'INVOICE']])->first();
+
+        if (!$findReservasis) {
+            return response()->json([
+                'message' => 'Reservasi Tidak Ditemukan!'
+            ], 422);
+        }
+        return new PostResource(true, 'Reservasi Didapatkan', $findReservasis);
+    }
+
+    public function reservasiUserPayment($id)
+    {
+        $findReservasis = Reservasi::where([['id_user', $id], ['status', 'PEMBAYARAN']])->first();
+
+        if (!$findReservasis) {
+            return response()->json([
+                'message' => 'Reservasi Tidak Ditemukan!'
+            ], 422);
+        }
+        return new PostResource(true, 'Reservasi Didapatkan', $findReservasis);
+    }
     public function store(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
@@ -36,7 +59,8 @@ class ReservasiController extends Controller
             'dewasa' => 'required',
             'anak' => 'required',
             'nomor_telepon' => 'required|regex:/^0\d{9,11}$/',
-            'nama' => 'required'
+            'nama' => 'required',
+            'total_harga' => 'required|numeric'
         ]);
 
         if ($validator->fails()) {
@@ -63,14 +87,15 @@ class ReservasiController extends Controller
             'anak' => $request->anak,
             'nomor_telepon' => $request->nomor_telepon,
             'nama' => $request->nama,
-            'status' => 'PEMBAYARAN'
+            'status' => 'PEMBAYARAN',
+            'total_harga' => $request->total_harga,
+            'sisa_pembayaran' => $request->total_harga
         ]);
 
         $reservasi->load('user');
 
         return new ReservasiResource(true, 'Reservasi Berhasil Ditambahkan!', $reservasi);
     }
-
     public function checkDate(Request $request)
     {
         $startDate = $request->start_date;
@@ -105,18 +130,20 @@ class ReservasiController extends Controller
             return new PostResource(true, '', $check);
         }
     }
-    public function update(Request $request, $id, $startDate) {
-        
-        $reservasi = Reservasi::where([['id_user',$id], ['start_date', $startDate]])->first();
+    public function update(Request $request, $id, $startDate)
+    {
+
+        $reservasi = Reservasi::where([['id_user', $id], ['start_date', $startDate]])->first();
 
         $validator = Validator::make($request->all(), [
             'dewasa' => 'required',
             'anak' => 'required',
             'nomor_telepon' => 'required',
-            'nama' => 'required'
+            'nama' => 'required',
+            'total_harga' => 'required'
         ]);
 
-        if($validator->fails()) {
+        if ($validator->fails()) {
             return response()->json([
                 'message' => $validator->errors()
             ], 422);
@@ -126,9 +153,44 @@ class ReservasiController extends Controller
             'dewasa' => $request->dewasa,
             'anak' => $request->anak,
             'nomor_telepon' => $request->nomor_telepon,
-            'nama' => $request->nama
+            'nama' => $request->nama,
+            'total_harga' => $request->total_harga
         ]);
 
         return new PostResource(true, 'Update Berhasil', $reservasi);
+    }
+    public function updateStatus(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'from_status' => 'required',
+            'to_status' => 'required'
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $reservasi = Reservasi::where([['id_user', $id], ['status', $request->from_status]])->first();
+        if(!$reservasi) {
+            return response()->json([
+                'message' => 'Data Tidak Ditemukan!'
+            ], 200);
+        }
+        $reservasi->update([
+            'status' => $request->to_status
+        ]);
+        return new PostResource(true, 'Status Berhasil Diubah', $reservasi);
+    }
+
+    public function destroy($id)
+    {
+        $reservasi = Reservasi::find($id);
+        if (!$reservasi) {
+            return new PostResource(false, 'Reservasi tidak ditemukan', null);
+        }
+        $reservasi->delete();
+
+        return new PostResource(true, 'Reservasi Telah Didelete!', null);
     }
 }

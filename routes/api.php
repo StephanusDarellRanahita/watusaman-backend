@@ -1,16 +1,25 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
-
 //import Controller Class
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\KamarController;
 use App\Http\Controllers\Api\ReservasiController;
-use App\Http\Controllers\WhatsAppController;
+use App\Http\Controllers\Api\PaymentsController;
+use App\Http\Controllers\Api\DanaPaymentsController;
+use App\Http\Controllers\Api\LaporanReservasiController;
 
+use App\Http\Resources\PostResource;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Support\Facades\Validator;
+
+
+use App\Http\Controllers\WhatsAppController;
 use App\Http\Controllers\UserAuthController;
+use App\Http\Controllers\UserAuthDanaController;
+
+use App\Mail\SendEmail;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,28 +37,45 @@ Route::post('/posts', [PostController::class, 'store']);
 Route::patch('/posts/{id}', [PostController::class, 'update']);
 
 //auth
-Route::post('/register',[UserAuthController::class, 'register']);
-Route::post('/login',[UserAuthController::class, 'login']);
-Route::post('/logout',[UserAuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::get('/users/{id}',[UserAuthController::class, 'getUser']);
+Route::post('/register', [UserAuthController::class, 'register']);
+Route::post('/login', [UserAuthController::class, 'login']);
+Route::post('/logout', [UserAuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::get('/users/{id}', [UserAuthController::class, 'getUser']);
+Route::put('/login-verif', [UserAuthController::class, 'setVerif']);
 
-//email verif
-Route::get('/email/verify', function () {
-    return view('auth.verify-email');
-})->middleware('auth')->name('verification.notice');
+Route::post('/login-admin/{pin}', [UserAuthController::class, 'adminLogin']);
 
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill();
- 
-    return redirect('/home');
-})->middleware(['auth', 'signed'])->name('verification.verify');
+//auth dana
+Route::post('/register-dana', [UserAuthDanaController::class, 'register']);
+Route::put('/otp-verif', [UserAuthDanaController::class, 'setVerif']);
 
-Route::post('/email/verification-notification', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
- 
-    return back()->with('message', 'Verification link sent!');
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+//email Verif
+Route::get('/send-email', function (Request $request) {
+    $validator = Validator::make($request->all(), [
+        'nama' => 'required|string',
+        'email' => 'required|string',
+    ]);
 
+    if ($validator->fails()) {
+        return response()->json([
+            'message' => $validator->errors()
+        ], 422);
+    }
+    $validated = $validator->validated();
+
+    $verificationUrl = 'http://localhost:5173/verifLogin';
+
+    $message = "Klik Link Ini Untuk Verifikasi : \n";
+    $message .= $verificationUrl;
+    $data = [
+        'title' => $validated['email'],
+        'name' => $validated['nama'],
+        'message' => $message
+    ];
+
+    Mail::to($validated['email'])->send(new SendEmail($data));
+    return new PostResource(true, 'Silahkan Cek Email Untuk Registrasi!', $data);
+});
 //kamar
 Route::get('/kamars', [KamarController::class, 'index']);
 Route::post('/kamars', [KamarController::class, 'store']);
@@ -58,9 +84,22 @@ Route::put('/kamars/{id}', [KamarController::class, 'update']);
 //reservasi
 Route::get('/reservasi', [ReservasiController::class, 'index']);
 Route::get('/reservasi/{id}', [ReservasiController::class, 'reservasiByUser']);
+Route::get('/reservasi-payed/{id}', [ReservasiController::class, 'reservasiByUserPayed']);
+Route::get('/reservasi-payment/{id}', [ReservasiController::class, 'reservasiUserPayment']);
 Route::post('/reservasi/{id}', [ReservasiController::class, 'store']);
 Route::post('/check-date', [ReservasiController::class, 'checkDate']);
 Route::put('/reservasi/{id}/{startDate}', [ReservasiController::class, 'update']);
+Route::put('/update-status/{id}', [ReservasiController::class, 'updateStatus']);
+Route::delete('/delete-reservasi/{id}', [ReservasiController::class, 'destroy']);
+
+//laporan
+Route::get('/laporan', [LaporanReservasiController::class, 'getPendapatanBulanan']);
+
+//payment
+Route::post('/payment', [PaymentsController::class, 'store']);
+
+//Dana
+Route::get('/user-dana', [DanaPaymentsController::class, 'userDana']);
 
 //WhatsApp sender
 Route::post('/send-whatsapp', [WhatsAppController::class, 'sendMessage']);
