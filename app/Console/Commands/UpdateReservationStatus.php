@@ -20,8 +20,8 @@ class UpdateReservationStatus extends Command
      *
      * @var string
      */
-    protected $description = 'Update reservation status from PEMBAYARAN to CANCEL if created more than a day ago';
-    //https://chatgpt.com/share/8b9aac42-5808-41cb-9ccd-1ecebc0e0102
+    protected $description = 'Update reservation status from PEMBAYARAN to BATAL if created more than a day ago';
+    
     public function __construct()
     {
         parent::__construct();
@@ -33,7 +33,7 @@ class UpdateReservationStatus extends Command
             ->get();
         
         foreach($reservasi as $res) {
-            $res->update(['status' => 'CANCEL']);
+            $res->update(['status' => 'BATAL']);
         }
 
         $this->info('Reservation status updated successfully');

@@ -28,10 +28,10 @@ class DanaPaymentsController extends Controller
         $user = UserDana::where('nomor_telepon',$request->nomor_telepon)->first();
         if(!$user) {
             return response()->json([
-                'message' => 'User Not Found!'
+                'message' => 'Pengguna tidak ditemukan!'
             ], 404);
         }
 
-        return new PostResource(true, 'User Ditemukan!', $user);
+        return new PostResource(true, 'Pengguna Ditemukan!', $user);
     }
 }

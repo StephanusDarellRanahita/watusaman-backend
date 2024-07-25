@@ -14,14 +14,17 @@ class SendEmail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct($data)
+    public function __construct($data, $subject, $view)
     {
         $this->data = $data;
+        $this->subject = $subject;
+        $this->view = $view;
     }
 
     public function build()
     {
-        return $this ->view('emails.sendemail')
-            ->subject('Verifikasi Akun Villa Watusaman');
+        return $this ->view($this->view)
+            ->subject($this->subject)
+            ->with('data', $this->data);
     }
 }

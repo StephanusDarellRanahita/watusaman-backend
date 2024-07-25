@@ -15,10 +15,16 @@ use Illuminate\Support\Facades\Validator;
 
 class ReservasiController extends Controller
 {
-    public function index()
+    public function index($tahun)
     {
-        $reservasis = Reservasi::orderBy('start_date', 'asc')->paginate(10);
+        $reservasis = Reservasi::whereYear('start_date', $tahun)
+            ->orderBy('start_date', 'asc')->paginate(10);
 
+        return new PostResource(true, 'List Data Reservasi', $reservasis);
+    }
+
+    public function showAll() {
+        $reservasis = Reservasi::all();
         return new PostResource(true, 'List Data Reservasi', $reservasis);
     }
 
@@ -26,7 +32,19 @@ class ReservasiController extends Controller
     {
         $findReservasis = Reservasi::where('id_user', $id)->get();
 
-        return new PostResource(true, 'List Data Reservasi', $findReservasis);
+        if (!$findReservasis) {
+            return response()->json([
+                'message' => 'Reservasi Tidak Ditemukan!',
+                'data' => null
+            ], 422);
+        }
+
+        return new PostResource(true, 'Data Reservasi', $findReservasis);
+    }
+    public function reservasiByid($id)
+    {
+        $findReservasis = Reservasi::where('id', $id)->first();
+        return new PostResource(true, 'Data Reservasi', $findReservasis);
     }
     public function reservasiByUserPayed($id)
     {
@@ -119,11 +137,11 @@ class ReservasiController extends Controller
                     ];
                 });
 
-                return new PostResource(true, 'Homestay Penuh', $conflictingDates);
+                return new PostResource(true, 'Villa Penuh', $conflictingDates);
             } else {
                 $conflictingDates = null;
 
-                return new PostResource(true, 'Homestay Tersedia', $conflictingDates);
+                return new PostResource(true, 'Villa Tersedia', $conflictingDates);
             }
         } else {
             $check = null;
@@ -172,13 +190,28 @@ class ReservasiController extends Controller
         }
 
         $reservasi = Reservasi::where([['id_user', $id], ['status', $request->from_status]])->first();
-        if(!$reservasi) {
+        if (!$reservasi) {
             return response()->json([
                 'message' => 'Data Tidak Ditemukan!'
             ], 200);
         }
         $reservasi->update([
             'status' => $request->to_status
+        ]);
+        return new PostResource(true, 'Status Berhasil Diubah', $reservasi);
+    }
+
+    public function cancel($id)
+    {
+        $reservasi = Reservasi::find($id);
+        if(!$reservasi) {
+            return response()->json([
+                'message' => 'Data Tidak Ditemukan!'
+            ], 200);
+        }
+
+        $reservasi->update([
+            'status' => 'BATAL'
         ]);
         return new PostResource(true, 'Status Berhasil Diubah', $reservasi);
     }

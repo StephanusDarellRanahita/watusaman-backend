@@ -17,15 +17,23 @@ use Illuminate\Support\Facades\Validator;
 
 class LaporanReservasiController extends Controller
 {
-    public function getPendapatanBulanan()
+    public function getPendapatanBulanan($tahun)
     {
         $pendapatanBulanan = DB::table('reservasis')
             ->selectRaw('YEAR(start_date) as year, MONTH(start_date) as month, SUM(total_harga) as total_harga')
-            ->where('status', '!=', 'cancel')
+            ->where('status', '!=', 'batal')
+            ->where('status', '!=', 'pembayaran')
+            ->whereYear('start_date',$tahun)
             ->groupBy('year', 'month')
             ->orderBy('year', 'asc')
             ->orderBy('month', 'asc')
             ->get();
+        
+            if(!$pendapatanBulanan) {
+                return response()->json([
+                    'message' => 'Tahun Tidak Valid'
+                ], 422);
+            }
 
         return response()->json($pendapatanBulanan);
     }

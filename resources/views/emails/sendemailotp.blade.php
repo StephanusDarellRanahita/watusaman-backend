@@ -11,7 +11,7 @@
         <h2>Untuk : {{ $data['title'] }}</h2>
         <h2>{{ $data['name'] }}, </h2>
         <p>{{ $data['message'] }}</p>
-        <p>Batas verifikasi adalah 1 jam setelah register! Jika belum maka registrasi harus diulang.</p>
+        <p>OTP akan direset setiap 1 menit setelah digenerate.</p>
     </div>
 </body>
 </html>
